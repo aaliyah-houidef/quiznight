@@ -1,5 +1,6 @@
 <?php
 require_once 'classes/Quiz.php';
+require_once 'classes/Questions.php';
 require_once 'classes/Categories.php';
 
 session_start();
@@ -17,20 +18,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $description = $_POST['description'];
     $category_id = $_POST['category_id'];
     $questions = $_POST['questions'];
-    $answers = $_POST['answers'];
 
     $quizClass = new Quiz();
-    $quiz_id = $quizClass->createQuiz($title, $description, $_SESSION['user_id'], $category_id);
-
     $questionClass = new Questions();
-    foreach ($questions as $index => $question_text) {
-        $question_id = $questionClass->addQuestion($quiz_id, $question_text);
-        $answerClass = new Answers();
-        $answerClass->addAnswer($question_id, $answers[$index]);
-    }
 
-    header('Location: all_quizzes.php');
-    exit();
+    try {
+        $quiz_id = $quizClass->createQuiz($title, $description, $_SESSION['user_id'], $category_id);
+
+        foreach ($questions as $question_text) {
+            $questionClass->addQuestion($quiz_id, $question_text);
+        }
+
+        header('Location: add_answers.php?quiz_id=' . $quiz_id);
+        exit();
+    } catch (Exception $e) {
+        $error = "Erreur lors de la création du quiz : " . $e->getMessage();
+    }
 }
 ?>
 
@@ -48,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <div class="container mt-5">
     <h2>Créer un Quiz</h2>
+    <?php if (isset($error)) { echo '<p class="text-danger">' . $error . '</p>'; } ?>
     <form method="post">
         <div class="form-group">
             <label for="title">Titre</label>
@@ -71,27 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label for="questions[]">Question</label>
                     <input type="text" class="form-control" name="questions[]" required>
                 </div>
-                <div class="form-group">
-                    <label for="answers[]">Réponse</label>
-                    <input type="text" class="form-control" name="answers[]" required>
-                </div>
                 <button type="button" class="btn btn-danger remove-question">Supprimer cette question</button>
             </div>
         </div>
-        <div> 
         <button type="button" class="btn btn-secondary" id="add-question">Ajouter une question</button>
         <button type="submit" class="btn btn-primary mt-3">Créer le quiz</button>
-    </div>
     </form>
 </div>
 
 <script>
     $(document).ready(function() {
-        // Ajouter quatre groupes de questions supplémentaires au chargement initial
-        for (var i = 0; i < 4; i++) {
-            $('#questions-container').append($('.question-group').first().clone());
-        }
-
         $('#add-question').click(function() {
             var questionGroup = $('.question-group').first().clone();
             questionGroup.find('input').val('');
@@ -99,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         });
 
         $(document).on('click', '.remove-question', function() {
-            if ($('.question-group').length > 5) {
+            if ($('.question-group').length > 1) {
                 $(this).closest('.question-group').remove();
             } else {
-                alert('Il doit y avoir au moins 5 questions.');
+                alert('Il doit y avoir au moins une question.');
             }
         });
     });
