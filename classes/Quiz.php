@@ -6,7 +6,6 @@ class Quiz extends Bdd {
         parent::__construct();
     }
 
-    // Méthode 1: récupérer tous les quiz
     public function getAllQuizzes() {
         $sql = 'SELECT * FROM quiz';
         $stmt = $this->conn->prepare($sql);
@@ -14,7 +13,6 @@ class Quiz extends Bdd {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Méthode 2: récupérer les quiz d'un utilisateur spécifique
     public function getQuizzesByUser($user_id) {
         $sql = 'SELECT * FROM quiz WHERE create_id = :create_id';
         $stmt = $this->conn->prepare($sql);
@@ -23,14 +21,26 @@ class Quiz extends Bdd {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Méthode 3: créer un nouveau quiz
-    public function createQuiz($title, $description, $create_id) {
-        $sql = 'INSERT INTO quiz (title, description, create_id) VALUES (:title, :description, :create_id)';
+    public function createQuiz($title, $description, $create_id, $category_id) {
+        $sql = 'INSERT INTO quiz (title, description, create_id, category_id) VALUES (:title, :description, :create_id, :category_id)';
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(':title', $title);
         $stmt->bindParam(':description', $description);
         $stmt->bindParam(':create_id', $create_id, PDO::PARAM_INT);
-        return $stmt->execute();
+        $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $this->conn->lastInsertId();
+    }
+
+    public function getQuizById($quiz_id) {
+        $sql = 'SELECT quiz.*, categories.name AS category_name, categories.icon AS category_icon 
+                FROM quiz 
+                LEFT JOIN categories ON quiz.category_id = categories.id 
+                WHERE quiz.id = :id';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(':id', $quiz_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
 ?>
